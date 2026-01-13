@@ -35,6 +35,12 @@ class ProductionConfig(Config):
         uri = os.environ.get('DATABASE_URL')
         if uri and uri.startswith('postgres://'):
             uri = uri.replace('postgres://', 'postgresql://', 1)
+        
+        # Fallback to in-memory SQLite if DATABASE_URL is invalid/missing
+        # This prevents the "NoneType" crash on startup, allowing /debug-config to be accessed
+        if not uri:
+            return 'sqlite:///:memory:'
+            
         return uri
         
 config = {
