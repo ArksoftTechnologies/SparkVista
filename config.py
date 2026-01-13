@@ -29,13 +29,7 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        uri = os.environ.get('DATABASE_URL')
-        if uri and uri.startswith('postgres://'):
-            uri = uri.replace('postgres://', 'postgresql://', 1)
-        return uri
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
         
 config = {
     'development': DevelopmentConfig,
