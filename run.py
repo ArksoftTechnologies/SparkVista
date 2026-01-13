@@ -1,7 +1,13 @@
 from app import create_app, db
 from app.models import User, Order # Import models for shell context
 
-app = create_app('development')
+import os
+
+# Determine config based on environment
+# Vercel sets the 'VERCEL' environment variable to '1'
+config_mode = 'production' if os.environ.get('VERCEL') else 'development'
+
+app = create_app(config_mode)
 
 @app.shell_context_processor
 def make_shell_context():
