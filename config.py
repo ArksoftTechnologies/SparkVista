@@ -29,19 +29,18 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+    PROPAGATE_EXCEPTIONS = True
     
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        uri = os.environ.get('DATABASE_URL')
-        if uri and uri.startswith('postgres://'):
-            uri = uri.replace('postgres://', 'postgresql://', 1)
+    # Calculate Database URI
+    uri = os.environ.get('DATABASE_URL')
+    if uri and uri.startswith('postgres://'):
+        uri = uri.replace('postgres://', 'postgresql://', 1)
+    
+    # Fallback to in-memory SQLite if DATABASE_URL is invalid/missing
+    if not uri:
+        uri = 'sqlite:///:memory:'
         
-        # Fallback to in-memory SQLite if DATABASE_URL is invalid/missing
-        # This prevents the "NoneType" crash on startup, allowing /debug-config to be accessed
-        if not uri:
-            return 'sqlite:///:memory:'
-            
-        return uri
+    SQLALCHEMY_DATABASE_URI = uri
         
 config = {
     'development': DevelopmentConfig,
