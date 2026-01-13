@@ -20,10 +20,13 @@ class AdminAnalytics(Resource):
         # Orders by status
         status_counts = db.session.query(Order.status, func.count(Order.status)).group_by(Order.status).all()
         
+        total_riders = User.query.filter_by(role='rider').count()
+        
         return {
             'total_orders': total_orders,
             'total_users': total_users,
             'total_revenue': total_revenue,
+            'total_riders': total_riders,
             'status_breakdown': dict(status_counts)
         }, 200
 
