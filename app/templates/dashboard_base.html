@@ -35,6 +35,27 @@
 
 <body class="bg-gray-50 text-gray-800 antialiased font-sans h-screen flex overflow-hidden">
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                try {
+                    // Decode JWT Payload (2nd part)
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const role = payload.role;
+
+                    // Show appropriate menu
+                    const menu = document.getElementById('menu-' + role);
+                    if (menu) {
+                        menu.classList.remove('hidden');
+                        menu.classList.add('block');
+                    }
+                } catch (e) {
+                    console.error('Error decoding token', e);
+                }
+            }
+        });
+    </script>
 
     <!-- Sidebar -->
     <aside id="mobile-sidebar"
@@ -53,8 +74,7 @@
         <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
             <!-- Dynamic Menu Sections -->
             <!-- Dynamic Menu Sections -->
-            <div id="menu-customer"
-                class="{% if current_user.role == 'customer' %}block{% else %}hidden{% endif %} space-y-2">
+            <div id="menu-customer" class="hidden space-y-2">
                 <p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Menu</p>
                 <a href="/dashboard"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl text-brand-blue bg-blue-50 font-bold transition">
@@ -70,8 +90,7 @@
                 </a>
             </div>
 
-            <div id="menu-staff"
-                class="{% if current_user.role == 'staff' %}block{% else %}hidden{% endif %} space-y-2">
+            <div id="menu-staff" class="hidden space-y-2">
                 <p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Staff Portal</p>
                 <a href="/staff/dashboard"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl text-brand-blue bg-blue-50 font-bold transition">
@@ -79,8 +98,7 @@
                 </a>
             </div>
 
-            <div id="menu-rider"
-                class="{% if current_user.role == 'rider' %}block{% else %}hidden{% endif %} space-y-2">
+            <div id="menu-rider" class="hidden space-y-2">
                 <p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Rider App</p>
                 <a href="/rider/dashboard"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl text-brand-blue bg-blue-50 font-bold transition">
@@ -88,8 +106,7 @@
                 </a>
             </div>
 
-            <div id="menu-admin"
-                class="{% if current_user.role == 'admin' %}block{% else %}hidden{% endif %} space-y-2">
+            <div id="menu-admin" class="hidden space-y-2">
                 <p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Admin Panel</p>
                 <a href="/admin/dashboard"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
