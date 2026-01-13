@@ -1,6 +1,7 @@
-from flask import render_template
+from flask import render_template, request
 from . import web
 from app.models.items import LaundryItem
+from app.models import User
 from app import db
 import os
 
@@ -21,6 +22,28 @@ def debug_config():
     db_url = os.environ.get('DATABASE_URL')
     status = "Set" if db_url else "Not Set"
     return f"DATABASE_URL is: {status}"
+
+@web.route('/debug-create-admin')
+def debug_create_admin():
+    email = request.args.get('email', 'admin@sparkvista.com')
+    password = request.args.get('password', 'admin123')
+    
+    try:
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(email=email, role='admin')
+            user.password = password
+            db.session.add(user)
+            action = "Created"
+        else:
+            user.role = 'admin'
+            user.password = password
+            action = "Updated"
+            
+        db.session.commit()
+        return f"Admin User {action}: {email} (Password: {password})"
+    except Exception as e:
+        return f"Error creating admin: {str(e)}"
 
 
 
