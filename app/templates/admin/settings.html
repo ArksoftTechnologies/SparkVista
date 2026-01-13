@@ -1,0 +1,115 @@
+{% extends "dashboard_base.html" %}
+
+{% block sidebar_menu %}
+<p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Admin Panel</p>
+<a href="/admin/dashboard"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
+    <i class="fas fa-chart-pie w-5"></i> Overview
+</a>
+<a href="/admin/items"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
+    <i class="fas fa-tags w-5"></i> Products & Prices
+</a>
+<a href="/admin/users"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
+    <i class="fas fa-users w-5"></i> Users
+</a>
+<a href="/admin/orders"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
+    <i class="fas fa-clipboard-list w-5"></i> Orders
+</a>
+<a href="/admin/finance"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
+    <i class="fas fa-wallet w-5"></i> Finance
+</a>
+<a href="/admin/settings"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-brand-blue shadow-lg shadow-blue-200 font-bold transition">
+    <i class="fas fa-cog w-5"></i> Settings
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-extrabold flex items-center gap-3 text-brand-dark">
+        System Settings
+    </h1>
+    <p class="text-gray-500 mt-2">Configure global application parameters.</p>
+</div>
+
+<div class="max-w-2xl">
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 bg-gray-50/50">
+            <h2 class="text-lg font-bold text-gray-900">Commission Configuration</h2>
+        </div>
+        <div class="p-8">
+            <form id="settingsForm">
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">
+                        Rider Commission Rate (%)
+                    </label>
+                    <p class="text-xs text-gray-500 mb-3">
+                        Percentage of order total that goes to the rider. Example: 0.15 = 15%.
+                    </p>
+                    <div class="relative rounded-md shadow-sm">
+                        <input type="number" id="commission" step="0.01" min="0" max="1"
+                            class="focus:ring-brand-blue focus:border-brand-blue block w-full pl-4 pr-12 sm:text-sm border-gray-300 rounded-xl py-3"
+                            placeholder="0.15">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end pt-4">
+                    <button type="submit"
+                        class="bg-brand-blue text-white font-bold py-3 px-8 rounded-xl hover:bg-brand-dark transition transform hover:-translate-y-1 shadow-md hover:shadow-lg">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadSettings() {
+        const token = localStorage.getItem('access_token');
+        try {
+            const res = await fetch('/api/admin/settings', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('commission').value = data.rider_commission_rate;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('access_token');
+        const rate = document.getElementById('commission').value;
+
+        try {
+            const res = await fetch('/api/admin/settings', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ rider_commission_rate: rate })
+            });
+
+            const result = await res.json();
+            if (res.ok) {
+                alert('Settings updated successfully!');
+            } else {
+                alert(result.message || 'Update failed');
+            }
+        } catch (e) {
+            alert('Error updating settings');
+        }
+    });
+
+    loadSettings();
+</script>
+{% endblock %}

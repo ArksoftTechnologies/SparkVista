@@ -1,0 +1,223 @@
+{% extends "dashboard_base.html" %}
+
+{% block sidebar_menu %}
+<p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Admin Panel</p>
+<a href="/admin/items"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
+    <i class="fas fa-tags w-5"></i> Products & Prices
+</a>
+<a href="/admin/orders"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-brand-blue bg-blue-50 font-bold transition">
+    <i class="fas fa-clipboard-list w-5"></i> Orders
+</a>
+<a href="/admin/users"
+    class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-brand-blue font-medium transition">
+    <i class="fas fa-users w-5"></i> Users
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex justify-between items-center">
+    <div>
+        <h1 class="text-3xl font-extrabold text-brand-dark">Order Management</h1>
+        <p class="text-gray-500 mt-1">View details and assign riders.</p>
+    </div>
+</div>
+
+<div class="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-100">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Tracking ID</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Customer</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Rider</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Total</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="orders-table" class="divide-y divide-gray-200">
+                <!-- JS Populated -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div id="admin-details-modal"
+    class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="p-6 overflow-y-auto flex-1" id="admin-details-content">
+            <!-- Content -->
+        </div>
+        <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+            <button onclick="closeAdminDetailsModal()"
+                class="px-6 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Rider Modal -->
+<div id="assign-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Assign Rider</h3>
+        <input type="hidden" id="assign-order-id">
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Rider</label>
+            <select id="rider-select"
+                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-blue"></select>
+        </div>
+        <div class="flex justify-end gap-3">
+            <button onclick="closeAssignModal()" class="text-gray-500 font-bold hover:text-gray-700">Cancel</button>
+            <button onclick="submitAssignment()"
+                class="bg-brand-blue text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-dark">Assign</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadOrders() {
+        const token = localStorage.getItem('access_token');
+        try {
+            const res = await fetch('/api/admin/orders', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const orders = await res.json();
+            const tbody = document.getElementById('orders-table');
+
+            tbody.innerHTML = orders.map(o => `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 text-sm font-bold text-brand-blue">${o.tracking_id}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        <div>${o.customer_email.split('@')[0]}</div>
+                        <div class="text-xs text-gray-500">${o.customer_email}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-gray-100 text-gray-800">
+                            ${o.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        ${o.rider_email ? o.rider_email : '<span class="text-orange-500 font-bold">Unassigned</span>'}
+                    </td>
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">₦${o.total_amount}</td>
+                    <td class="px-6 py-4 text-sm font-medium">
+                        <button onclick="openAssignModal(${o.id})" class="text-gray-500 hover:text-brand-blue font-bold mr-3 text-xs">Assign</button>
+                        <button onclick="showAdminOrderDetails(${o.id})" class="text-brand-blue hover:text-brand-dark font-bold text-xs bg-blue-50 px-3 py-1 rounded-full">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) { console.error(e); }
+    }
+
+    // Reuse similar logic or import... copying for speed in this context
+    async function showAdminOrderDetails(orderId) {
+        const token = localStorage.getItem('access_token');
+        const modal = document.getElementById('admin-details-modal');
+        const content = document.getElementById('admin-details-content');
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        content.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-brand-blue"></i></div>';
+
+        try {
+            const res = await fetch(`/api/admin/orders/${orderId}`, { headers: { 'Authorization': 'Bearer ' + token } });
+            const order = await res.json();
+
+            let itemsHtml = order.items.map(i => `
+                <div class="flex justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div>
+                        <span class="font-bold text-gray-800">${i.quantity}x ${i.item_name}</span>
+                        <div class="text-xs text-gray-500">${i.service_type}</div>
+                    </div>
+                    <div class="font-mono text-gray-700">₦${i.price}</div>
+                </div>
+            `).join('');
+
+            content.innerHTML = `
+                <div class="mb-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-2xl font-bold text-brand-dark">Order ${order.tracking_id}</h3>
+                             <p class="text-sm text-gray-500">${order.customer.email}</p>
+                        </div>
+                        <span class="px-3 py-1 text-sm font-bold rounded-full bg-gray-100">${order.status}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Items</h4>
+                     <div class="bg-gray-50 rounded-xl p-4">
+                        ${itemsHtml}
+                         <div class="flex justify-between pt-4 mt-2 border-t border-gray-200 font-bold text-lg">
+                            <span>Total</span>
+                            <span class="text-brand-blue">₦${order.total_amount}</span>
+                        </div>
+                    </div>
+                </div>
+                ${order.pickup_address ? `
+                <div>
+                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Pickup Location</h4>
+                     <p class="text-sm text-gray-800 bg-white border border-gray-100 p-3 rounded-lg shadow-sm">
+                        <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                        ${order.pickup_address.street}, ${order.pickup_address.city}
+                     </p>
+                </div>
+                ` : ''}
+            `;
+        } catch (e) { console.error(e); }
+    }
+
+    function closeAdminDetailsModal() {
+        document.getElementById('admin-details-modal').classList.add('hidden');
+        document.getElementById('admin-details-modal').classList.remove('flex');
+    }
+
+    async function loadRiders() {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('/api/admin/riders', { headers: { 'Authorization': 'Bearer ' + token } });
+        const riders = await res.json();
+        const select = document.getElementById('rider-select');
+        select.innerHTML = riders.map(r => `<option value="${r.id}">${r.email} (ID: ${r.id})</option>`).join('');
+    }
+
+    function openAssignModal(orderId) {
+        document.getElementById('assign-order-id').value = orderId;
+        document.getElementById('assign-modal').classList.remove('hidden');
+        document.getElementById('assign-modal').classList.add('flex');
+        loadRiders();
+    }
+
+    function closeAssignModal() {
+        document.getElementById('assign-modal').classList.add('hidden');
+        document.getElementById('assign-modal').classList.remove('flex');
+    }
+
+    async function submitAssignment() {
+        const orderId = document.getElementById('assign-order-id').value;
+        const riderId = document.getElementById('rider-select').value;
+        const token = localStorage.getItem('access_token');
+
+        try {
+            const res = await fetch(`/api/admin/orders/${orderId}/assign`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ rider_id: riderId })
+            });
+            if (res.ok) {
+                closeAssignModal();
+                loadOrders();
+                alert('Rider Assigned!');
+            } else {
+                alert('Failed to assign');
+            }
+        } catch (e) { console.error(e); alert('Error'); }
+    }
+
+    loadOrders();
+</script>
+{% endblock %}
