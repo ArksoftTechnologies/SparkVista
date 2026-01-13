@@ -1,11 +1,26 @@
 from flask import render_template
-from flask import render_template
 from . import web
 from app.models.items import LaundryItem
+from app import db
+import os
 
 @web.route('/')
 def index():
     return render_template('landing.html')
+
+@web.route('/debug-init-db')
+def debug_init_db():
+    try:
+        db.create_all()
+        return "Database tables created successfully!"
+    except Exception as e:
+        return f"Error creating tables: {str(e)}"
+
+@web.route('/debug-config')
+def debug_config():
+    db_url = os.environ.get('DATABASE_URL')
+    status = "Set" if db_url else "Not Set"
+    return f"DATABASE_URL is: {status}"
 
 @web.route('/pricing')
 def pricing():
